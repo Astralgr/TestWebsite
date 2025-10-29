@@ -1,10 +1,10 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Chat Website</title>
+    <title>TaskFlow - Advanced Task Manager with Drawing Board</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -12,149 +12,3073 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --primary: #00CEC8;
+            --primary-dark: #00B8B3;
+            --secondary: #00A8A3;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f9fafb;
+            --bg-tertiary: #f3f4f6;
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --border: #e5e7eb;
+            --shadow: rgba(0, 0, 0, 0.1);
+            --sidebar-width: 280px;
+        }
+
+        [data-theme="dark"] {
+            --primary: #00CEC8;
+            --primary-dark: #00E5DD;
+            --secondary: #00D9D3;
+            --success: #34d399;
+            --danger: #f87171;
+            --warning: #fbbf24;
+            --info: #60a5fa;
+            --bg-primary: #1f2937;
+            --bg-secondary: #111827;
+            --bg-tertiary: #374151;
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --border: #374151;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--sidebar-width);
             height: 100vh;
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1.5rem;
+            z-index: 101;
+            overflow-y: auto;
+            box-shadow: 4px 0 12px var(--shadow);
+        }
+
+        .sidebar-logo {
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 2rem;
+        }
+
+        .sidebar-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem;
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
             display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s;
+            background: transparent;
+            color: var(--text-primary);
+        }
+
+        .action-btn:hover {
+            background: var(--bg-secondary);
+            transform: translateX(4px);
+        }
+
+        .action-btn-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
             justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+
+        .btn-new-task .action-btn-icon {
+            background: linear-gradient(135deg, #00CEC8 0%, #00A8A3 100%);
+            box-shadow: 0 4px 12px rgba(0, 206, 200, 0.3);
+        }
+
+        .btn-new-note .action-btn-icon {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 4px 12px rgba(240, 147, 251, 0.3);
+        }
+
+        .btn-template .action-btn-icon {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);
+        }
+
+        .btn-drawing .action-btn-icon {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            box-shadow: 0 4px 12px rgba(250, 112, 154, 0.3);
+        }
+
+        .btn-new-task:hover .action-btn-icon,
+        .btn-new-note:hover .action-btn-icon,
+        .btn-template:hover .action-btn-icon,
+        .btn-drawing:hover .action-btn-icon {
+            transform: scale(1.1);
+        }
+
+        .action-btn-icon svg {
+            width: 20px;
+            height: 20px;
+            stroke: white;
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .category-filter {
+            padding: 0.75rem 1rem;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .category-filter:hover {
+            background: var(--bg-tertiary);
+            transform: translateX(4px);
+        }
+
+        .category-filter.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .category-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .sidebar-stats {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            font-size: 0.9rem;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* Header */
+        .header {
+            position: sticky;
+            top: 0;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            margin-left: var(--sidebar-width);
+            z-index: 100;
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 2rem;
             align-items: center;
         }
 
-        .chat-container {
-            background: white;
+        .search-bar {
+            flex: 1;
+            max-width: 500px;
+            position: relative;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .search-bar input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 206, 200, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-icon {
+            background: transparent;
+            border: none;
+            padding: 0.75rem;
             border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            width: 400px;
-            height: 500px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .btn-icon.danger:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        /* Main Container */
+        .container {
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 2rem;
+        }
+
+        .container.kanban-mode {
+            grid-template-columns: 1fr;
+        }
+
+        /* Tasks Section */
+        .tasks-section {
+            background: var(--bg-primary);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .view-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .view-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .task-filters {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .tasks-list {
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            gap: 1rem;
         }
 
-        .chat-header {
-            background: #4a5568;
-            color: white;
-            padding: 15px;
-            text-align: center;
-            font-weight: bold;
+        /* Kanban Board */
+        .kanban-board {
+            display: none;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-top: 1rem;
         }
 
-        .chat-messages {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            background: #f7fafc;
+        .kanban-board.active {
+            display: grid;
         }
 
-        .message {
-            margin-bottom: 15px;
-            padding: 10px;
-            border-radius: 8px;
-            max-width: 80%;
+        .kanban-column {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            min-height: 500px;
         }
 
-        .user-message {
-            background: #3182ce;
-            color: white;
-            margin-left: auto;
-        }
-
-        .bot-message {
-            background: #e2e8f0;
-            color: #2d3748;
-        }
-
-        .chat-input-container {
-            padding: 15px;
-            background: white;
-            border-top: 1px solid #e2e8f0;
+        .kanban-column-header {
             display: flex;
-            gap: 10px;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border);
         }
 
-        .chat-input {
+        .kanban-column-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .kanban-column-count {
+            background: var(--bg-tertiary);
+            padding: 0.25rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .kanban-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-height: 400px;
+        }
+
+        .kanban-cards.drag-over {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            border: 2px dashed var(--primary);
+        }
+
+        /* Task Card */
+        .task-card {
+            background: var(--bg-secondary);
+            border: 3px solid transparent;
+            border-radius: 14px;
+            padding: 1.25rem;
+            cursor: move;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            gap: 1rem;
+            position: relative;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .task-card:hover {
+            box-shadow: 0 8px 20px var(--shadow);
+            transform: translateY(-4px) scale(1.01);
+        }
+
+        .task-card.overdue {
+            border-left: 4px solid var(--danger);
+        }
+
+        .task-card.due-soon {
+            border-left: 4px solid var(--warning);
+        }
+
+        .task-card.dragging {
+            opacity: 0.5;
+            transform: rotate(3deg) scale(1.05);
+            box-shadow: 0 10px 30px var(--shadow);
+        }
+
+        /* Color Outline Classes */
+        .task-card.color-red { border-color: #ef4444; }
+        .task-card.color-orange { border-color: #f97316; }
+        .task-card.color-yellow { border-color: #eab308; }
+        .task-card.color-green { border-color: #10b981; }
+        .task-card.color-blue { border-color: #3b82f6; }
+        .task-card.color-purple { border-color: #8b5cf6; }
+        .task-card.color-pink { border-color: #ec4899; }
+
+        .task-number {
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+
+        .task-checkbox {
+            width: 32px;
+            height: 32px;
+            border: 2.5px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-primary);
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+
+        .task-checkbox:hover {
+            border-color: var(--primary);
+            transform: scale(1.1);
+        }
+
+        .task-checkbox.completed {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-color: var(--primary);
+        }
+
+        .task-checkbox svg {
+            width: 18px;
+            height: 18px;
+            stroke: white;
+            stroke-width: 3;
+            fill: none;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s;
+        }
+
+        .task-checkbox.completed svg {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .task-content {
             flex: 1;
-            padding: 10px;
-            border: 1px solid #cbd5e0;
-            border-radius: 5px;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .task-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .task-title.completed {
+            text-decoration: line-through;
+            opacity: 0.5;
+        }
+
+        .task-badges {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .task-priority, .task-category {
+            padding: 0.25rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .priority-high {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        .priority-medium {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        .priority-low {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+        }
+
+        .task-due-date {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            width: fit-content;
+        }
+
+        .task-due-date.overdue {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        .task-due-date.due-soon {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .task-description {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 0.75rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .subtasks-container {
+            margin: 0.75rem 0;
+            padding-left: 1rem;
+            border-left: 2px solid var(--border);
+        }
+
+        .subtask-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+            font-size: 0.9rem;
+        }
+
+        .subtask-checkbox {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .subtask-checkbox.completed {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .subtask-text.completed {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+
+        .task-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.75rem;
+            gap: 1rem;
+        }
+
+        .task-tags {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+
+        .tag {
+            padding: 0.25rem 0.75rem;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .task-btn {
+            background: transparent;
+            border: none;
+            padding: 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .task-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--primary);
+        }
+
+        .task-btn.delete:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .task-btn.archive:hover {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .task-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Color Picker */
+        .color-picker {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .color-option {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .color-option:hover {
+            transform: scale(1.15);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .color-option.selected {
+            border: 3px solid var(--text-primary);
+            transform: scale(1.1);
+        }
+
+        /* Notes Section */
+        .notes-container {
+            background: var(--bg-primary);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px var(--shadow);
+            position: sticky;
+            top: 100px;
+            max-height: calc(100vh - 140px);
+            overflow-y: auto;
+        }
+
+        .notes-container.hidden {
+            display: none;
+        }
+
+        .notes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .note-box {
+            border-radius: 14px;
+            padding: 1.5rem;
+            color: white;
+            cursor: move;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            position: relative;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .note-box:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+
+        .note-box.dragging {
+            opacity: 0.7;
+        }
+
+        .note-number {
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .note-content {
+            margin-bottom: 1rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .note-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+
+        .note-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .note-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .note-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-primary);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            background: var(--bg-secondary);
+            transform: rotate(90deg);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
+
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
             outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 206, 200, 0.1);
         }
 
-        .chat-input:focus {
-            border-color: #3182ce;
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
         }
 
-        .send-button {
-            padding: 10px 15px;
-            background: #3182ce;
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .subtasks-form {
+            margin-top: 0.5rem;
+        }
+
+        .subtask-input-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtask-input {
+            flex: 1;
+        }
+
+        .btn-add-subtask {
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .btn-add-subtask:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .btn-remove-subtask {
+            padding: 0.5rem;
+            background: var(--danger);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: background 0.2s;
         }
 
-        .send-button:hover {
-            background: #2c5aa0;
+        .form-footer {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 8px 24px var(--shadow);
+            z-index: 1001;
+            transition: transform 0.3s;
+        }
+
+        .toast.active {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        /* Templates Modal */
+        .templates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .template-card {
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .template-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .template-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .template-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .template-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Confirmation Modal */
+        .confirm-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1001;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .confirm-modal.active {
+            display: flex;
+        }
+
+        .confirm-content {
+            background: var(--bg-primary);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .confirm-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .confirm-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .confirm-message {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .confirm-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
+        /* Drawing Board Styles */
+        .drawing-board-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            display: none;
+        }
+
+        .drawing-board-container.active {
+            display: flex;
+        }
+
+        .drawing-board {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .drawing-toolbar {
+            background: var(--bg-primary);
+            padding: 1rem 2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            padding: 0 1rem;
+            border-right: 1px solid var(--border);
+        }
+
+        .toolbar-group:last-child {
+            border-right: none;
+        }
+
+        .toolbar-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+
+        .tool-btn {
+            width: 44px;
+            height: 44px;
+            border: 2px solid var(--border);
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .tool-btn:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .tool-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 206, 200, 0.3);
+        }
+
+        .tool-btn svg {
+            width: 20px;
+            height: 20px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .color-swatch {
+            width: 44px;
+            height: 44px;
+            border: 3px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .color-swatch:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .color-swatch.active {
+            border-color: var(--text-primary);
+            transform: scale(1.15);
+            box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--text-primary);
+        }
+
+        .stroke-width-slider {
+            width: 120px;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--bg-tertiary);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .stroke-width-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+        }
+
+        .stroke-width-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: none;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        #drawingCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: block;
+            cursor: crosshair;
+            background: white;
+        }
+
+        #drawingCanvas.move-mode {
+            cursor: move;
+        }
+
+        #drawingCanvas.eraser-mode {
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><circle cx="12" cy="12" r="10" fill="white" stroke="black" stroke-width="2"/></svg>') 12 12, auto;
+        }
+
+        .canvas-3d-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        #canvas3D {
+            pointer-events: all;
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .notes-container {
+                position: relative;
+                top: 0;
+                max-height: none;
+            }
+            .kanban-board {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --sidebar-width: 0;
+            }
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .header, .container {
+                margin-left: 0;
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .drawing-toolbar {
+                padding: 0.75rem 1rem;
+                gap: 0.5rem;
+            }
+            .toolbar-group {
+                padding: 0 0.5rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            Chat Assistant
-        </div>
-        <div class="chat-messages" id="chatMessages">
-            <div class="message bot-message">
-                Hello! How can I help you today?
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">TaskFlow</div>
+
+        <div class="sidebar-title">Quick Actions</div>
+        <button class="action-btn btn-new-task" id="newTaskBtn">
+            <div class="action-btn-icon">
+                <svg viewBox="0 0 24 24">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            </div>
+            <span>New Task</span>
+        </button>
+        <button class="action-btn btn-new-note" id="newNoteBtn">
+            <div class="action-btn-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                    <line x1="9" y1="15" x2="15" y2="15"></line>
+                </svg>
+            </div>
+            <span>New Note</span>
+        </button>
+        <button class="action-btn btn-template" id="templatesBtn">
+            <div class="action-btn-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                    <polyline points="13 2 13 9 20 9"></polyline>
+                </svg>
+            </div>
+            <span>Templates</span>
+        </button>
+        <button class="action-btn btn-drawing" id="drawingBoardBtn">
+            <div class="action-btn-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                    <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                    <path d="M2 2l7.586 7.586"></path>
+                    <circle cx="11" cy="11" r="2"></circle>
+                </svg>
+            </div>
+            <span>Drawing Board</span>
+        </button>
+
+        <div class="sidebar-title">Categories</div>
+        <button class="category-filter active" data-category="all">
+            <span class="category-dot" style="background: var(--primary)"></span>
+            All Tasks
+        </button>
+        <button class="category-filter" data-category="work">
+            <span class="category-dot" style="background: #3b82f6"></span>
+            Work
+        </button>
+        <button class="category-filter" data-category="personal">
+            <span class="category-dot" style="background: #8b5cf6"></span>
+            Personal
+        </button>
+        <button class="category-filter" data-category="shopping">
+            <span class="category-dot" style="background: #10b981"></span>
+            Shopping
+        </button>
+        <button class="category-filter" data-category="health">
+            <span class="category-dot" style="background: #ef4444"></span>
+            Health
+        </button>
+
+        <div class="sidebar-stats">
+            <div class="stat-item">
+                <span class="stat-label">Total Tasks</span>
+                <span class="stat-value" id="statTotal">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Active</span>
+                <span class="stat-value" id="statActive">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Completed</span>
+                <span class="stat-value" id="statCompleted">0</span>
             </div>
         </div>
-        <div class="chat-input-container">
-            <input type="text" class="chat-input" id="chatInput" placeholder="Type your message...">
-            <button class="send-button" onclick="sendMessage()">Send</button>
+    </aside>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="search-bar">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="Search tasks...">
+            </div>
+            <div class="header-actions">
+                <button class="btn-icon" id="themeToggle" title="Toggle Theme">🌓</button>
+                <button class="btn-icon" id="archiveBtn" title="View Archive">📦</button>
+                <button class="btn-icon danger" id="clearAllBtn" title="Clear All Data">🗑️</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container" id="mainContainer">
+        <!-- Tasks Section -->
+        <div class="tasks-section">
+            <div class="section-header">
+                <h2 class="section-title">Tasks</h2>
+                <div class="view-toggle">
+                    <button class="view-btn" data-view="list">📋 List</button>
+                    <button class="view-btn" data-view="kanban">📊 Kanban</button>
+                    <button class="view-btn active" data-view="active">Active</button>
+                    <button class="view-btn" data-view="archived">Archived</button>
+                </div>
+            </div>
+
+            <div class="task-filters" id="taskFilters">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="today">Today</button>
+                <button class="filter-btn" data-filter="week">This Week</button>
+                <button class="filter-btn" data-filter="overdue">Overdue</button>
+                <button class="filter-btn" data-filter="high">High Priority</button>
+            </div>
+
+            <!-- List View -->
+            <div class="tasks-list" id="tasksList"></div>
+
+            <!-- Kanban Board -->
+            <div class="kanban-board" id="kanbanBoard">
+                <div class="kanban-column">
+                    <div class="kanban-column-header">
+                        <div class="kanban-column-title">
+                            📝 To Do
+                        </div>
+                        <div class="kanban-column-count" id="todoCount">0</div>
+                    </div>
+                    <div class="kanban-cards" id="todoColumn" data-status="todo"></div>
+                </div>
+
+                <div class="kanban-column">
+                    <div class="kanban-column-header">
+                        <div class="kanban-column-title">
+                            🚀 In Progress
+                        </div>
+                        <div class="kanban-column-count" id="progressCount">0</div>
+                    </div>
+                    <div class="kanban-cards" id="progressColumn" data-status="in-progress"></div>
+                </div>
+
+                <div class="kanban-column">
+                    <div class="kanban-column-header">
+                        <div class="kanban-column-title">
+                            ✅ Done
+                        </div>
+                        <div class="kanban-column-count" id="doneCount">0</div>
+                    </div>
+                    <div class="kanban-cards" id="doneColumn" data-status="done"></div>
+                </div>
+            </div>
+
+            <div class="empty-state" id="tasksEmpty" style="display: none;">
+                <div class="empty-state-icon">✨</div>
+                <div>No tasks yet</div>
+            </div>
+        </div>
+
+        <!-- Notes Section -->
+        <div class="notes-container" id="notesContainer">
+            <div class="section-header">
+                <h2 class="section-title">Quick Notes</h2>
+            </div>
+            <div class="notes-list" id="notesList"></div>
+            <div class="empty-state" id="notesEmpty" style="display: none;">
+                <div class="empty-state-icon">📝</div>
+                <div>No notes yet</div>
+            </div>
         </div>
     </div>
 
-    <script>
-        function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const messagesContainer = document.getElementById('chatMessages');
-            
-            if (input.value.trim() === '') return;
-            
-            // Add user message
-            const userMessage = document.createElement('div');
-            userMessage.className = 'message user-message';
-            userMessage.textContent = input.value;
-            messagesContainer.appendChild(userMessage);
-            
-            // Clear input
-            const messageText = input.value;
-            input.value = '';
-            
-            // Simulate bot response (you'll replace this with actual chat logic)
-            setTimeout(() => {
-                const botMessage = document.createElement('div');
-                botMessage.className = 'message bot-message';
-                botMessage.textContent = `You said: "${messageText}". This is a demo response!`;
-                messagesContainer.appendChild(botMessage);
+    <!-- Drawing Board -->
+    <div class="drawing-board-container" id="drawingBoardContainer">
+        <div class="drawing-board">
+            <div class="drawing-toolbar">
+                <div class="toolbar-group">
+                    <span class="toolbar-label">Tools</span>
+                    <button class="tool-btn active" data-tool="pen" title="Pen">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                        </svg>
+                    </button>
+                    <button class="tool-btn" data-tool="eraser" title="Eraser">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M20 20H7L3 16 12 7l9 9v4z"></path>
+                            <path d="M7 20l5-5"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="toolbar-group">
+                    <span class="toolbar-label">2D Shapes</span>
+                    <button class="tool-btn" data-tool="rectangle" title="Rectangle">▭</button>
+                    <button class="tool-btn" data-tool="circle" title="Circle">○</button>
+                    <button class="tool-btn" data-tool="line" title="Line">─</button>
+                    <button class="tool-btn" data-tool="arrow" title="Arrow">→</button>
+                    <button class="tool-btn" data-tool="triangle" title="Triangle">△</button>
+                    <button class="tool-btn" data-tool="star" title="Star">★</button>
+                </div>
+
+                <div class="toolbar-group">
+                    <span class="toolbar-label">3D Shapes</span>
+                    <button class="tool-btn" data-tool="cube" title="Cube">🧊</button>
+                    <button class="tool-btn" data-tool="sphere" title="Sphere">⚽</button>
+                    <button class="tool-btn" data-tool="pyramid" title="Pyramid">🔺</button>
+                    <button class="tool-btn" data-tool="cylinder" title="Cylinder">🥫</button>
+                </div>
+
+                <div class="toolbar-group">
+                    <span class="toolbar-label">Color</span>
+                    <div class="color-swatch active" data-color="#000000" style="background: #000000"></div>
+                    <div class="color-swatch" data-color="#ef4444" style="background: #ef4444"></div>
+                    <div class="color-swatch" data-color="#3b82f6" style="background: #3b82f6"></div>
+                    <div class="color-swatch" data-color="#10b981" style="background: #10b981"></div>
+                    <div class="color-swatch" data-color="#f59e0b" style="background: #f59e0b"></div>
+                    <div class="color-swatch" data-color="#8b5cf6" style="background: #8b5cf6"></div>
+                </div>
+
+                <div class="toolbar-group">
+                    <span class="toolbar-label">Size</span>
+                    <input type="range" class="stroke-width-slider" id="strokeWidth" min="1" max="20" value="2">
+                </div>
+
+                <div class="toolbar-group">
+                    <button class="tool-btn" id="clearCanvas" title="Clear All">
+                        <svg viewBox="0 0 24 24">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                    <button class="tool-btn" id="undoDraw" title="Undo">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M3 7v6h6"></path>
+                            <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"></path>
+                        </svg>
+                    </button>
+                    <button class="tool-btn" id="saveDrawing" title="Save as PNG">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                    </button>
+                    <button class="tool-btn" id="closeDrawing" title="Close">✕</button>
+                </div>
+            </div>
+
+            <div class="canvas-container" id="canvasContainer">
+                <canvas id="drawingCanvas"></canvas>
+                <div class="canvas-3d-container">
+                    <canvas id="canvas3D"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Modal -->
+    <div class="modal" id="taskModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">New Task</h3>
+                <button class="close-btn" onclick="closeTaskModal()">×</button>
+            </div>
+            <form id="taskForm">
+                <input type="hidden" id="taskId">
                 
-                // Scroll to bottom
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }, 1000);
-            
-            // Scroll to bottom
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                <div class="form-group">
+                    <label class="form-label">Title *</label>
+                    <input type="text" class="form-input" id="taskTitle" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" id="taskDescription" placeholder="Press Enter for new lines..."></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Priority</label>
+                        <select class="form-select" id="taskPriority">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Category</label>
+                        <select class="form-select" id="taskCategory">
+                            <option value="work">Work</option>
+                            <option value="personal">Personal</option>
+                            <option value="shopping">Shopping</option>
+                            <option value="health">Health</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" id="taskStatus">
+                            <option value="todo">To Do</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="done">Done</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Due Date</label>
+                        <input type="date" class="form-input" id="taskDueDate">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Color Outline</label>
+                    <div class="color-picker">
+                        <div class="color-option" data-color="none" style="background: var(--bg-tertiary)"></div>
+                        <div class="color-option" data-color="red" style="background: #ef4444"></div>
+                        <div class="color-option" data-color="orange" style="background: #f97316"></div>
+                        <div class="color-option" data-color="yellow" style="background: #eab308"></div>
+                        <div class="color-option" data-color="green" style="background: #10b981"></div>
+                        <div class="color-option" data-color="blue" style="background: #3b82f6"></div>
+                        <div class="color-option" data-color="purple" style="background: #8b5cf6"></div>
+                        <div class="color-option" data-color="pink" style="background: #ec4899"></div>
+                    </div>
+                    <input type="hidden" id="taskColor" value="none">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Tags (comma-separated)</label>
+                    <input type="text" class="form-input" id="taskTags">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Subtasks</label>
+                    <div class="subtasks-form" id="subtasksForm"></div>
+                    <button type="button" class="btn-add-subtask" onclick="addSubtaskInput()">+ Add Subtask</button>
+                </div>
+
+                <div class="form-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeTaskModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Note Modal -->
+    <div class="modal" id="noteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">New Note</h3>
+                <button class="close-btn" onclick="closeNoteModal()">×</button>
+            </div>
+            <form id="noteForm">
+                <input type="hidden" id="noteId">
+                <div class="form-group">
+                    <label class="form-label">Note Content *</label>
+                    <textarea class="form-textarea" id="noteContent" required style="min-height: 150px;" placeholder="Press Enter for new lines..."></textarea>
+                </div>
+                <div class="form-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeNoteModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Note</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Templates Modal -->
+    <div class="modal" id="templatesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Task Templates</h3>
+                <button class="close-btn" onclick="closeTemplatesModal()">×</button>
+            </div>
+            <div class="templates-grid">
+                <div class="template-card" onclick="useTemplate('meeting')">
+                    <div class="template-icon">👥</div>
+                    <div class="template-name">Meeting</div>
+                    <div class="template-desc">Prepare for meeting</div>
+                </div>
+                <div class="template-card" onclick="useTemplate('project')">
+                    <div class="template-icon">🚀</div>
+                    <div class="template-name">Project</div>
+                    <div class="template-desc">Start new project</div>
+                </div>
+                <div class="template-card" onclick="useTemplate('shopping')">
+                    <div class="template-icon">🛒</div>
+                    <div class="template-name">Shopping</div>
+                    <div class="template-desc">Shopping list</div>
+                </div>
+                <div class="template-card" onclick="useTemplate('workout')">
+                    <div class="template-icon">💪</div>
+                    <div class="template-name">Workout</div>
+                    <div class="template-desc">Exercise routine</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="confirm-modal" id="confirmModal">
+        <div class="confirm-content">
+            <div class="confirm-icon" id="confirmIcon">⚠️</div>
+            <h3 class="confirm-title" id="confirmTitle">Confirm Action</h3>
+            <p class="confirm-message" id="confirmMessage">Are you sure?</p>
+            <div class="confirm-actions">
+                <button class="btn btn-secondary" onclick="closeConfirmModal()">Cancel</button>
+                <button class="btn btn-danger" id="confirmBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ==================== STATE ====================
+        const state = {
+            tasks: [],
+            notes: [],
+            currentCategory: 'all',
+            currentFilter: 'all',
+            currentView: 'active',
+            currentDisplayMode: 'list',
+            editingTask: null,
+            editingNote: null,
+            selectedColor: 'none',
+            confirmCallback: null,
+            // Drawing state
+            currentTool: 'pen',
+            currentColor: '#000000',
+            strokeWidth: 2,
+            isDrawing: false,
+            drawingHistory: [],
+            currentPath: null,
+            scene3D: null,
+            camera3D: null,
+            renderer3D: null,
+            objects3D: [],
+            animationId: null
+        };
+
+        // Category colors
+        const categoryColors = {
+            work: '#3b82f6',
+            personal: '#8b5cf6',
+            shopping: '#10b981',
+            health: '#ef4444'
+        };
+
+        // Templates
+        const templates = {
+            meeting: {
+                title: 'Prepare for Meeting',
+                category: 'work',
+                priority: 'high',
+                status: 'todo',
+                subtasks: ['Review agenda', 'Prepare materials', 'Send invites']
+            },
+            project: {
+                title: 'New Project',
+                category: 'work',
+                priority: 'medium',
+                status: 'todo',
+                subtasks: ['Define scope', 'Create timeline', 'Assign tasks']
+            },
+            shopping: {
+                title: 'Shopping List',
+                category: 'shopping',
+                priority: 'low',
+                status: 'todo',
+                subtasks: ['Groceries', 'Household items']
+            },
+            workout: {
+                title: 'Workout Routine',
+                category: 'health',
+                priority: 'medium',
+                status: 'todo',
+                subtasks: ['Warm up', 'Main exercises', 'Cool down']
+            }
+        };
+
+        // ==================== INITIALIZE ====================
+        function init() {
+            loadData();
+            setupEventListeners();
+            setupColorPicker();
+            render();
+            updateStats();
+            console.log('✅ TaskFlow initialized successfully');
         }
+
+        function setupEventListeners() {
+            document.getElementById('newTaskBtn').onclick = () => openTaskModal();
+            document.getElementById('newNoteBtn').onclick = () => openNoteModal();
+            document.getElementById('templatesBtn').onclick = () => openTemplatesModal();
+            document.getElementById('drawingBoardBtn').onclick = () => openDrawingBoard();
+            document.getElementById('themeToggle').onclick = toggleTheme;
+            document.getElementById('archiveBtn').onclick = () => showArchived();
+            document.getElementById('clearAllBtn').onclick = () => showConfirm(
+                '⚠️',
+                'Clear All Data?',
+                'This will permanently delete all tasks and notes. This action cannot be undone.',
+                confirmClearAll
+            );
+            
+            document.getElementById('taskForm').onsubmit = handleTaskSubmit;
+            document.getElementById('noteForm').onsubmit = handleNoteSubmit;
+            
+            document.getElementById('searchInput').oninput = handleSearch;
+
+            document.querySelectorAll('.category-filter').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('.category-filter').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    state.currentCategory = btn.dataset.category;
+                    renderTasks();
+                };
+            });
+
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    state.currentFilter = btn.dataset.filter;
+                    renderTasks();
+                };
+            });
+
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.onclick = () => {
+                    const view = btn.dataset.view;
+                    
+                    if (view === 'list' || view === 'kanban') {
+                        state.currentDisplayMode = view;
+                        document.querySelectorAll('.view-btn[data-view="list"], .view-btn[data-view="kanban"]').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        
+                        if (view === 'kanban') {
+                            document.getElementById('tasksList').style.display = 'none';
+                            document.getElementById('kanbanBoard').classList.add('active');
+                            document.getElementById('mainContainer').classList.add('kanban-mode');
+                            document.getElementById('notesContainer').classList.add('hidden');
+                            document.getElementById('taskFilters').style.display = 'none';
+                        } else {
+                            document.getElementById('tasksList').style.display = 'flex';
+                            document.getElementById('kanbanBoard').classList.remove('active');
+                            document.getElementById('mainContainer').classList.remove('kanban-mode');
+                            document.getElementById('notesContainer').classList.remove('hidden');
+                            document.getElementById('taskFilters').style.display = 'flex';
+                        }
+                    } else {
+                        document.querySelectorAll('.view-btn[data-view="active"], .view-btn[data-view="archived"]').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        state.currentView = view;
+                    }
+                    
+                    renderTasks();
+                };
+            });
+        }
+
+        // ==================== COLOR PICKER ====================
+        function setupColorPicker() {
+            document.querySelectorAll('.color-option').forEach(option => {
+                option.onclick = () => {
+                    document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                    option.classList.add('selected');
+                    state.selectedColor = option.dataset.color;
+                    document.getElementById('taskColor').value = state.selectedColor;
+                };
+            });
+        }
+
+        // ==================== TASK MODAL ====================
+        function openTaskModal(task = null) {
+            state.editingTask = task;
+            state.selectedColor = 'none';
+            
+            if (task) {
+                document.getElementById('taskId').value = task.id;
+                document.getElementById('taskTitle').value = task.title;
+                document.getElementById('taskDescription').value = task.description || '';
+                document.getElementById('taskPriority').value = task.priority;
+                document.getElementById('taskCategory').value = task.category;
+                document.getElementById('taskStatus').value = task.status || 'todo';
+                document.getElementById('taskDueDate').value = task.dueDate || '';
+                document.getElementById('taskTags').value = task.tags.join(', ');
+                document.getElementById('taskColor').value = task.color || 'none';
+                state.selectedColor = task.color || 'none';
+                
+                document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                const colorOption = document.querySelector(`.color-option[data-color="${state.selectedColor}"]`);
+                if (colorOption) colorOption.classList.add('selected');
+                
+                const subtasksForm = document.getElementById('subtasksForm');
+                subtasksForm.innerHTML = '';
+                task.subtasks.forEach(sub => {
+                    addSubtaskInput(sub.text, sub.completed);
+                });
+            } else {
+                document.getElementById('taskForm').reset();
+                document.getElementById('subtasksForm').innerHTML = '';
+                document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                document.querySelector('.color-option[data-color="none"]').classList.add('selected');
+            }
+            document.getElementById('taskModal').classList.add('active');
+        }
+
+        function closeTaskModal() {
+            document.getElementById('taskModal').classList.remove('active');
+            state.editingTask = null;
+        }
+
+        function addSubtaskInput(text = '', completed = false) {
+            const container = document.getElementById('subtasksForm');
+            const div = document.createElement('div');
+            div.className = 'subtask-input-group';
+            div.innerHTML = `
+                <input type="text" class="form-input subtask-input" value="${escapeHtml(text)}" placeholder="Subtask...">
+                <button type="button" class="btn-remove-subtask" onclick="this.parentElement.remove()">×</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function handleTaskSubmit(e) {
+            e.preventDefault();
+            
+            const subtaskInputs = document.querySelectorAll('.subtask-input');
+            const subtasks = Array.from(subtaskInputs)
+                .map(input => ({ text: input.value.trim(), completed: false }))
+                .filter(sub => sub.text);
+
+            const task = {
+                id: document.getElementById('taskId').value || Date.now().toString(),
+                title: document.getElementById('taskTitle').value.trim(),
+                description: document.getElementById('taskDescription').value.trim(),
+                priority: document.getElementById('taskPriority').value,
+                category: document.getElementById('taskCategory').value,
+                status: document.getElementById('taskStatus').value,
+                dueDate: document.getElementById('taskDueDate').value,
+                tags: document.getElementById('taskTags').value.split(',').map(t => t.trim()).filter(t => t),
+                color: document.getElementById('taskColor').value,
+                subtasks: subtasks,
+                completed: state.editingTask?.completed || false,
+                archived: state.editingTask?.archived || false,
+                createdAt: state.editingTask?.createdAt || new Date().toISOString()
+            };
+
+            if (state.editingTask) {
+                const index = state.tasks.findIndex(t => t.id === task.id);
+                state.tasks[index] = task;
+                showToast('Task updated!', 'success');
+            } else {
+                state.tasks.unshift(task);
+                showToast('Task created!', 'success');
+            }
+
+            saveData();
+            renderTasks();
+            updateStats();
+            closeTaskModal();
+        }
+
+        // ==================== NOTE MODAL ====================
+        function openNoteModal(note = null) {
+            state.editingNote = note;
+            if (note) {
+                document.getElementById('noteId').value = note.id;
+                document.getElementById('noteContent').value = note.content;
+            } else {
+                document.getElementById('noteForm').reset();
+            }
+            document.getElementById('noteModal').classList.add('active');
+        }
+
+        function closeNoteModal() {
+            document.getElementById('noteModal').classList.remove('active');
+            state.editingNote = null;
+        }
+
+        function handleNoteSubmit(e) {
+            e.preventDefault();
+            
+            const note = {
+                id: document.getElementById('noteId').value || Date.now().toString(),
+                content: document.getElementById('noteContent').value.trim(),
+                createdAt: state.editingNote?.createdAt || new Date().toISOString()
+            };
+
+            if (state.editingNote) {
+                const index = state.notes.findIndex(n => n.id === note.id);
+                state.notes[index] = note;
+                showToast('Note updated!', 'success');
+            } else {
+                state.notes.unshift(note);
+                showToast('Note created!', 'success');
+            }
+
+            saveData();
+            renderNotes();
+            closeNoteModal();
+        }
+
+        // ==================== TEMPLATES ====================
+        function openTemplatesModal() {
+            document.getElementById('templatesModal').classList.add('active');
+        }
+
+        function closeTemplatesModal() {
+            document.getElementById('templatesModal').classList.remove('active');
+        }
+
+        function useTemplate(templateName) {
+            const template = templates[templateName];
+            if (!template) return;
+
+            closeTemplatesModal();
+            openTaskModal();
+            
+            document.getElementById('taskTitle').value = template.title;
+            document.getElementById('taskCategory').value = template.category;
+            document.getElementById('taskPriority').value = template.priority;
+            document.getElementById('taskStatus').value = template.status;
+            
+            const subtasksForm = document.getElementById('subtasksForm');
+            subtasksForm.innerHTML = '';
+            template.subtasks.forEach(text => addSubtaskInput(text));
+        }
+
+        // ==================== CONFIRMATION MODAL ====================
+        function showConfirm(icon, title, message, callback) {
+            document.getElementById('confirmIcon').textContent = icon;
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            state.confirmCallback = callback;
+            
+            const confirmBtn = document.getElementById('confirmBtn');
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+            newConfirmBtn.onclick = () => {
+                if (state.confirmCallback) {
+                    state.confirmCallback();
+                }
+                closeConfirmModal();
+            };
+            
+            document.getElementById('confirmModal').classList.add('active');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.remove('active');
+            state.confirmCallback = null;
+        }
+
+        function confirmClearAll() {
+            state.tasks = [];
+            state.notes = [];
+            localStorage.removeItem('taskflow_tasks');
+            localStorage.removeItem('taskflow_notes');
+            render();
+            updateStats();
+            showToast('All data cleared successfully!', 'success');
+        }
+
+        // ==================== TASK ACTIONS ====================
+        function toggleTaskComplete(id) {
+            const task = state.tasks.find(t => t.id === id);
+            if (task) {
+                task.completed = !task.completed;
+                if (task.completed) {
+                    task.status = 'done';
+                } else if (task.status === 'done') {
+                    task.status = 'todo';
+                }
+                saveData();
+                renderTasks();
+                updateStats();
+            }
+        }
+
+        function toggleSubtask(taskId, subtaskIndex) {
+            const task = state.tasks.find(t => t.id === taskId);
+            if (task && task.subtasks[subtaskIndex]) {
+                task.subtasks[subtaskIndex].completed = !task.subtasks[subtaskIndex].completed;
+                saveData();
+                renderTasks();
+            }
+        }
+
+        function editTask(id) {
+            const task = state.tasks.find(t => t.id === id);
+            if (task) openTaskModal(task);
+        }
+
+        function deleteTask(id) {
+            showConfirm(
+                '🗑️',
+                'Delete Task?',
+                'Are you sure you want to delete this task? This action cannot be undone.',
+                () => {
+                    state.tasks = state.tasks.filter(t => t.id !== id);
+                    saveData();
+                    renderTasks();
+                    updateStats();
+                    showToast('Task deleted', 'success');
+                }
+            );
+        }
+
+function archiveTask(id) {
+            const task = state.tasks.find(t => t.id === id);
+            if (task) {
+                task.archived = !task.archived;
+                saveData();
+                renderTasks();
+                showToast(task.archived ? 'Task archived' : 'Task unarchived', 'success');
+            }
+        }
+
+        function changeTaskStatus(taskId, newStatus) {
+            const task = state.tasks.find(t => t.id === taskId);
+            if (task) {
+                task.status = newStatus;
+                if (newStatus === 'done') {
+                    task.completed = true;
+                } else {
+                    task.completed = false;
+                }
+                saveData();
+                renderTasks();
+                updateStats();
+            }
+        }
+
+        function showArchived() {
+            state.currentView = 'archived';
+            document.querySelectorAll('.view-btn[data-view="active"], .view-btn[data-view="archived"]').forEach(b => b.classList.remove('active'));
+            document.querySelector('.view-btn[data-view="archived"]').classList.add('active');
+            renderTasks();
+        }
+
+        // ==================== NOTE ACTIONS ====================
+        function editNote(id) {
+            const note = state.notes.find(n => n.id === id);
+            if (note) openNoteModal(note);
+        }
+
+        function deleteNote(id) {
+            showConfirm(
+                '🗑️',
+                'Delete Note?',
+                'Are you sure you want to delete this note? This action cannot be undone.',
+                () => {
+                    state.notes = state.notes.filter(n => n.id !== id);
+                    saveData();
+                    renderNotes();
+                    showToast('Note deleted', 'success');
+                }
+            );
+        }
+
+        // ==================== RENDER FUNCTIONS ====================
+        function render() {
+            renderTasks();
+            renderNotes();
+        }
+
+        function renderTasks() {
+            if (state.currentDisplayMode === 'kanban') {
+                renderKanban();
+            } else {
+                renderList();
+            }
+        }
+
+        function renderList() {
+            let tasks = state.tasks.filter(t => t.archived === (state.currentView === 'archived'));
+
+            if (state.currentCategory !== 'all') {
+                tasks = tasks.filter(t => t.category === state.currentCategory);
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+            const weekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+            switch (state.currentFilter) {
+                case 'today':
+                    tasks = tasks.filter(t => t.dueDate === today);
+                    break;
+                case 'week':
+                    tasks = tasks.filter(t => t.dueDate && t.dueDate <= weekFromNow);
+                    break;
+                case 'overdue':
+                    tasks = tasks.filter(t => t.dueDate && t.dueDate < today && !t.completed);
+                    break;
+                case 'high':
+                    tasks = tasks.filter(t => t.priority === 'high');
+                    break;
+            }
+
+            const container = document.getElementById('tasksList');
+            const empty = document.getElementById('tasksEmpty');
+
+            if (tasks.length === 0) {
+                container.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            container.innerHTML = tasks.map((task, index) => createTaskCard(task, index + 1)).join('');
+            
+            setupDragDrop();
+        }
+
+        function renderKanban() {
+            let tasks = state.tasks.filter(t => !t.archived);
+
+            if (state.currentCategory !== 'all') {
+                tasks = tasks.filter(t => t.category === state.currentCategory);
+            }
+
+            const todoTasks = tasks.filter(t => t.status === 'todo');
+            const progressTasks = tasks.filter(t => t.status === 'in-progress');
+            const doneTasks = tasks.filter(t => t.status === 'done');
+
+            document.getElementById('todoCount').textContent = todoTasks.length;
+            document.getElementById('progressCount').textContent = progressTasks.length;
+            document.getElementById('doneCount').textContent = doneTasks.length;
+
+            document.getElementById('todoColumn').innerHTML = todoTasks.map((task, index) => createTaskCard(task, index + 1, true)).join('');
+            document.getElementById('progressColumn').innerHTML = progressTasks.map((task, index) => createTaskCard(task, index + 1, true)).join('');
+            document.getElementById('doneColumn').innerHTML = doneTasks.map((task, index) => createTaskCard(task, index + 1, true)).join('');
+
+            setupKanbanDragDrop();
+        }
+
+        function setupDragDrop() {
+            const tasksList = document.getElementById('tasksList');
+            let draggedElement = null;
+
+            tasksList.querySelectorAll('.task-card').forEach(card => {
+                card.addEventListener('dragstart', (e) => {
+                    draggedElement = card;
+                    card.classList.add('dragging');
+                });
+
+                card.addEventListener('dragend', () => {
+                    card.classList.remove('dragging');
+                    updateTaskOrder();
+                });
+            });
+
+            tasksList.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(tasksList, e.clientY);
+                const dragging = document.querySelector('.dragging');
+                
+                if (afterElement == null) {
+                    tasksList.appendChild(dragging);
+                } else {
+                    tasksList.insertBefore(dragging, afterElement);
+                }
+            });
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.task-card:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function updateTaskOrder() {
+            const taskElements = document.querySelectorAll('#tasksList .task-card');
+            const newOrder = [];
+            
+            taskElements.forEach(el => {
+                const taskId = el.dataset.taskId;
+                const task = state.tasks.find(t => t.id === taskId);
+                if (task) newOrder.push(task);
+            });
+
+            state.tasks = newOrder.concat(state.tasks.filter(t => !newOrder.includes(t)));
+            saveData();
+            showToast('Task order updated', 'success');
+        }
+
+        function setupKanbanDragDrop() {
+            const columns = document.querySelectorAll('.kanban-cards');
+            
+            columns.forEach(column => {
+                column.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    column.classList.add('drag-over');
+                });
+
+                column.addEventListener('dragleave', () => {
+                    column.classList.remove('drag-over');
+                });
+
+                column.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    column.classList.remove('drag-over');
+                    
+                    const taskId = e.dataTransfer.getData('text/plain');
+                    const newStatus = column.dataset.status;
+                    
+                    changeTaskStatus(taskId, newStatus);
+                });
+            });
+
+            const cards = document.querySelectorAll('.kanban-cards .task-card');
+            cards.forEach(card => {
+                card.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', card.dataset.taskId);
+                    card.classList.add('dragging');
+                });
+
+                card.addEventListener('dragend', () => {
+                    card.classList.remove('dragging');
+                });
+            });
+        }
+
+        function createTaskCard(task, number, isKanban = false) {
+            const today = new Date().toISOString().split('T')[0];
+            const threeDays = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            
+            let dueDateClass = '';
+            let dueDateText = '';
+            
+            if (task.dueDate) {
+                if (task.dueDate < today && !task.completed) {
+                    dueDateClass = 'overdue';
+                    dueDateText = '⚠️ Overdue';
+                } else if (task.dueDate <= threeDays && !task.completed) {
+                    dueDateClass = 'due-soon';
+                    dueDateText = '⏰ Due soon';
+                } else {
+                    dueDateText = `📅 ${task.dueDate}`;
+                }
+            }
+
+            const colorClass = task.color && task.color !== 'none' ? `color-${task.color}` : '';
+
+            return `
+                <div class="task-card ${dueDateClass} ${colorClass}" draggable="true" data-task-id="${task.id}">
+                    <div class="task-number">${number}</div>
+                    <div class="task-checkbox ${task.completed ? 'completed' : ''}" onclick="event.stopPropagation(); toggleTaskComplete('${task.id}')">
+                        <svg viewBox="0 0 24 24">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="task-content">
+                        <div class="task-header">
+                            <div class="task-title ${task.completed ? 'completed' : ''}">${escapeHtml(task.title)}</div>
+                            <div class="task-badges">
+                                <span class="task-priority priority-${task.priority}">${task.priority}</span>
+                                <span class="task-category" style="background: ${categoryColors[task.category]}22; color: ${categoryColors[task.category]}">${task.category}</span>
+                            </div>
+                        </div>
+                        ${task.dueDate ? `<div class="task-due-date ${dueDateClass}">${dueDateText}</div>` : ''}
+                        ${task.description ? `<div class="task-description">${escapeHtml(task.description)}</div>` : ''}
+                        ${task.subtasks.length > 0 ? `
+                            <div class="subtasks-container">
+                                ${task.subtasks.map((sub, i) => `
+                                    <div class="subtask-item">
+                                        <div class="subtask-checkbox ${sub.completed ? 'completed' : ''}" onclick="event.stopPropagation(); toggleSubtask('${task.id}', ${i})"></div>
+                                        <span class="subtask-text ${sub.completed ? 'completed' : ''}">${escapeHtml(sub.text)}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                        <div class="task-meta">
+                            <div class="task-tags">
+                                ${task.tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
+                            </div>
+                            <div class="task-actions">
+                                <button class="task-btn" onclick="event.stopPropagation(); editTask('${task.id}')" title="Edit">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                                <button class="task-btn archive" onclick="event.stopPropagation(); archiveTask('${task.id}')" title="Archive">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                                        <rect x="1" y="3" width="22" height="5"></rect>
+                                        <line x1="10" y1="12" x2="14" y2="12"></line>
+                                    </svg>
+                                </button>
+                                <button class="task-btn delete" onclick="event.stopPropagation(); deleteTask('${task.id}')" title="Delete">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderNotes() {
+            const container = document.getElementById('notesList');
+            const empty = document.getElementById('notesEmpty');
+
+            if (state.notes.length === 0) {
+                container.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            const gradients = [
+                'linear-gradient(135deg, #00CEC8 0%, #00A8A3 100%)',
+                'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+            ];
+
+            container.innerHTML = state.notes.map((note, i) => `
+                <div class="note-box" style="background: ${gradients[i % gradients.length]}" draggable="true" data-note-id="${note.id}">
+                    <div class="note-number">${i + 1}</div>
+                    <div class="note-content">${escapeHtml(note.content)}</div>
+                    <div class="note-actions">
+                        <button class="note-btn" onclick="event.stopPropagation(); editNote('${note.id}')" title="Edit">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </button>
+                        <button class="note-btn" onclick="event.stopPropagation(); deleteNote('${note.id}')" title="Delete">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats() {
+            const total = state.tasks.filter(t => !t.archived).length;
+            const active = state.tasks.filter(t => !t.completed && !t.archived).length;
+            const completed = state.tasks.filter(t => t.completed && !t.archived).length;
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statActive').textContent = active;
+            document.getElementById('statCompleted').textContent = completed;
+        }
+
+        // ==================== SEARCH ====================
+        function handleSearch(e) {
+            const query = e.target.value.toLowerCase();
+            if (!query) {
+                renderTasks();
+                renderNotes();
+                return;
+            }
+
+            const filteredTasks = state.tasks.filter(t => 
+                t.title.toLowerCase().includes(query) ||
+                t.description.toLowerCase().includes(query) ||
+                t.tags.some(tag => tag.toLowerCase().includes(query))
+            );
+
+            const container = document.getElementById('tasksList');
+            container.innerHTML = filteredTasks.map((task, index) => createTaskCard(task, index + 1)).join('');
+        }
+
+        // ==================== THEME ====================
+        function toggleTheme() {
+            const current = document.body.dataset.theme;
+            document.body.dataset.theme = current === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', document.body.dataset.theme);
+            showToast('Theme changed', 'success');
+        }
+
+        // ==================== DRAWING BOARD ====================
+        function openDrawingBoard() {
+            console.log('🎨 Opening drawing board...');
+            const container = document.getElementById('drawingBoardContainer');
+            container.classList.add('active');
+            
+            // Small delay to ensure container is rendered
+            setTimeout(() => {
+                initDrawingCanvas();
+                init3DCanvas();
+                setupDrawingTools();
+                showToast('Drawing board opened! 🎨', 'success');
+            }, 100);
+        }
+
+        function closeDrawingBoard() {
+            const container = document.getElementById('drawingBoardContainer');
+            container.classList.remove('active');
+            
+            // Clean up 3D
+            if (state.animationId) {
+                cancelAnimationFrame(state.animationId);
+                state.animationId = null;
+            }
+            
+            if (state.renderer3D) {
+                state.renderer3D.dispose();
+                state.renderer3D = null;
+            }
+            
+            state.scene3D = null;
+            state.camera3D = null;
+            state.objects3D = [];
+            
+            showToast('Drawing board closed', 'success');
+        }
+
+        function initDrawingCanvas() {
+            const canvas = document.getElementById('drawingCanvas');
+            const container = document.getElementById('canvasContainer');
+            
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            console.log('✅ 2D Canvas initialized:', canvas.width, 'x', canvas.height);
+        }
+
+        function init3DCanvas() {
+            if (typeof THREE === 'undefined') {
+                console.warn('⚠️ Three.js not loaded - 3D shapes disabled');
+                return;
+            }
+
+            try {
+                const canvas3D = document.getElementById('canvas3D');
+                const container = document.getElementById('canvasContainer');
+                
+                // Scene
+                state.scene3D = new THREE.Scene();
+                
+                // Camera
+                state.camera3D = new THREE.PerspectiveCamera(
+                    75,
+                    container.clientWidth / container.clientHeight,
+                    0.1,
+                    1000
+                );
+                state.camera3D.position.z = 5;
+                
+                // Renderer
+                state.renderer3D = new THREE.WebGLRenderer({ 
+                    canvas: canvas3D, 
+                    alpha: true,
+                    antialias: true
+                });
+                state.renderer3D.setSize(container.clientWidth, container.clientHeight);
+                state.renderer3D.setClearColor(0x000000, 0);
+                
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                state.scene3D.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(10, 10, 10);
+                state.scene3D.add(directionalLight);
+                
+                // Start animation
+                animate3D();
+                
+                console.log('✅ 3D Canvas initialized with Three.js');
+            } catch (error) {
+                console.error('❌ Error initializing 3D canvas:', error);
+            }
+        }
+
+        function animate3D() {
+            if (!state.renderer3D || !state.scene3D || !state.camera3D) return;
+            
+            state.animationId = requestAnimationFrame(animate3D);
+            
+            // Rotate 3D objects
+            state.objects3D.forEach(obj => {
+                obj.rotation.x += 0.01;
+                obj.rotation.y += 0.01;
+            });
+            
+            state.renderer3D.render(state.scene3D, state.camera3D);
+        }
+
+        function setupDrawingTools() {
+            const canvas = document.getElementById('drawingCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Tool buttons
+            document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
+                btn.onclick = () => selectTool(btn.dataset.tool);
+            });
+            
+            // Color swatches
+            document.querySelectorAll('.drawing-toolbar .color-swatch').forEach(swatch => {
+                swatch.onclick = () => {
+                    document.querySelectorAll('.drawing-toolbar .color-swatch').forEach(s => s.classList.remove('active'));
+                    swatch.classList.add('active');
+                    state.currentColor = swatch.dataset.color;
+                };
+            });
+            
+            // Stroke width
+            const strokeSlider = document.getElementById('strokeWidth');
+            strokeSlider.oninput = (e) => {
+                state.strokeWidth = parseInt(e.target.value);
+            };
+            
+            // Canvas drawing events
+            let startX, startY, lastX, lastY;
+            
+            canvas.onmousedown = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                startX = e.clientX - rect.left;
+                startY = e.clientY - rect.top;
+                lastX = startX;
+                lastY = startY;
+                state.isDrawing = true;
+                
+                if (state.currentTool === 'pen') {
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    state.currentPath = canvas.toDataURL();
+                } else if (state.currentTool === 'eraser') {
+                    ctx.globalCompositeOperation = 'destination-out';
+                    ctx.lineWidth = state.strokeWidth * 3;
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    state.currentPath = canvas.toDataURL();
+                }
+            };
+            
+            canvas.onmousemove = (e) => {
+                if (!state.isDrawing) return;
+                
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                if (state.currentTool === 'pen') {
+                    ctx.strokeStyle = state.currentColor;
+                    ctx.lineWidth = state.strokeWidth;
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.lineTo(x, y);
+                    ctx.stroke();
+                } else if (state.currentTool === 'eraser') {
+                    ctx.lineTo(x, y);
+                    ctx.stroke();
+                }
+                
+                lastX = x;
+                lastY = y;
+            };
+            
+            canvas.onmouseup = (e) => {
+                if (!state.isDrawing) return;
+                
+                const rect = canvas.getBoundingClientRect();
+                const endX = e.clientX - rect.left;
+                const endY = e.clientY - rect.top;
+                
+                state.isDrawing = false;
+                ctx.globalCompositeOperation = 'source-over';
+                
+                // Create shape for 2D tools
+                if (['rectangle', 'circle', 'line', 'arrow', 'triangle', 'star'].includes(state.currentTool)) {
+                    drawShape(state.currentTool, startX, startY, endX, endY);
+                }
+                // Create 3D shape
+                else if (['cube', 'sphere', 'pyramid', 'cylinder'].includes(state.currentTool)) {
+                    add3DShape(state.currentTool, endX, endY);
+                }
+                
+                // Save state for undo
+                saveDrawingState();
+            };
+            
+            canvas.onmouseleave = () => {
+                state.isDrawing = false;
+            };
+            
+            // Button actions
+            document.getElementById('clearCanvas').onclick = () => {
+                showConfirm(
+                    '🗑️',
+                    'Clear Canvas?',
+                    'This will erase all your drawings. This action cannot be undone.',
+                    () => {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        state.drawingHistory = [];
+                        
+                        // Clear 3D objects
+                        if (state.scene3D) {
+                            state.objects3D.forEach(obj => {
+                                state.scene3D.remove(obj);
+                                if (obj.geometry) obj.geometry.dispose();
+                                if (obj.material) obj.material.dispose();
+                            });
+                            state.objects3D = [];
+                        }
+                        
+                        showToast('Canvas cleared', 'success');
+                    }
+                );
+            };
+            
+            document.getElementById('undoDraw').onclick = () => {
+                if (state.drawingHistory.length > 0) {
+                    const img = new Image();
+                    img.onload = () => {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0);
+                    };
+                    img.src = state.drawingHistory.pop();
+                    showToast('Undo', 'success');
+                } else {
+                    showToast('Nothing to undo', 'error');
+                }
+            };
+            
+            document.getElementById('saveDrawing').onclick = () => {
+                try {
+                    const link = document.createElement('a');
+                    link.download = `taskflow-drawing-${Date.now()}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    showToast('Drawing saved! 💾', 'success');
+                } catch (error) {
+                    showToast('Error saving drawing', 'error');
+                    console.error(error);
+                }
+            };
+            
+            document.getElementById('closeDrawing').onclick = closeDrawingBoard;
+            
+            console.log('✅ Drawing tools setup complete');
+        }
+
+        function selectTool(tool) {
+            state.currentTool = tool;
+            
+            // Update active button
+            document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => btn.classList.remove('active'));
+            const toolBtn = document.querySelector(`[data-tool="${tool}"]`);
+            if (toolBtn) toolBtn.classList.add('active');
+            
+            // Update cursor
+            const canvas = document.getElementById('drawingCanvas');
+            canvas.className = '';
+            if (tool === 'eraser') {
+                canvas.classList.add('eraser-mode');
+            }
+            
+            console.log('🔧 Tool selected:', tool);
+        }
+
+        function drawShape(type, x1, y1, x2, y2) {
+            const canvas = document.getElementById('drawingCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.strokeStyle = state.currentColor;
+            ctx.fillStyle = state.currentColor + '33'; // 20% opacity
+            ctx.lineWidth = state.strokeWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            ctx.beginPath();
+            
+            switch(type) {
+                case 'rectangle':
+                    const width = x2 - x1;
+                    const height = y2 - y1;
+                    ctx.rect(x1, y1, width, height);
+                    ctx.fill();
+                    ctx.stroke();
+                    break;
+                    
+                case 'circle':
+                    const radius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                    ctx.arc(x1, y1, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                    break;
+                    
+                case 'line':
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                    break;
+                    
+                case 'arrow':
+                    drawArrow(ctx, x1, y1, x2, y2);
+                    break;
+                    
+                case 'triangle':
+                    const midX = (x1 + x2) / 2;
+                    ctx.moveTo(midX, y1);
+                    ctx.lineTo(x1, y2);
+                    ctx.lineTo(x2, y2);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                    break;
+                    
+                case 'star':
+                    const centerX = (x1 + x2) / 2;
+                    const centerY = (y1 + y2) / 2;
+                    const outerRadius = Math.abs(x2 - x1) / 2;
+                    const innerRadius = outerRadius / 2.5;
+                    drawStar(ctx, centerX, centerY, 5, outerRadius, innerRadius);
+                    ctx.fill();
+                    ctx.stroke();
+                    break;
+            }
+            
+            console.log('✏️ Drew shape:', type);
+        }
+
+        function drawArrow(ctx, x1, y1, x2, y2) {
+            const headLength = 20;
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+            
+            // Draw line
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            
+            // Draw arrowhead
+            ctx.lineTo(
+                x2 - headLength * Math.cos(angle - Math.PI / 6),
+                y2 - headLength * Math.sin(angle - Math.PI / 6)
+            );
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(
+                x2 - headLength * Math.cos(angle + Math.PI / 6),
+                y2 - headLength * Math.sin(angle + Math.PI / 6)
+            );
+            
+            ctx.stroke();
+        }
+
+        function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+            let rot = Math.PI / 2 * 3;
+            const step = Math.PI / spikes;
+
+            ctx.moveTo(cx, cy - outerRadius);
+            
+            for (let i = 0; i < spikes; i++) {
+                let x = cx + Math.cos(rot) * outerRadius;
+                let y = cy + Math.sin(rot) * outerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+
+                x = cx + Math.cos(rot) * innerRadius;
+                y = cy + Math.sin(rot) * innerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+            }
+            
+            ctx.lineTo(cx, cy - outerRadius);
+            ctx.closePath();
+        }
+
+        function add3DShape(type, x, y) {
+            if (!state.scene3D || typeof THREE === 'undefined') {
+                showToast('3D not available', 'error');
+                return;
+            }
+            
+            try {
+                let geometry, material, mesh;
+                
+                material = new THREE.MeshPhongMaterial({ 
+                    color: state.currentColor,
+                    shininess: 100
+                });
+                
+                switch(type) {
+                    case 'cube':
+                        geometry = new THREE.BoxGeometry(1, 1, 1);
+                        break;
+                    case 'sphere':
+                        geometry = new THREE.SphereGeometry(0.5, 32, 32);
+                        break;
+                    case 'pyramid':
+                        geometry = new THREE.ConeGeometry(0.5, 1, 4);
+                        break;
+                    case 'cylinder':
+                        geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32);
+                        break;
+                }
+                
+                mesh = new THREE.Mesh(geometry, material);
+                
+                // Convert 2D position to 3D space
+                const canvas3D = document.getElementById('canvas3D');
+                const rect = canvas3D.getBoundingClientRect();
+                const ndcX = (x / rect.width) * 2 - 1;
+                const ndcY = -(y / rect.height) * 2 + 1;
+                
+                const vector = new THREE.Vector3(ndcX, ndcY, 0.5);
+                vector.unproject(state.camera3D);
+                
+                const dir = vector.sub(state.camera3D.position).normalize();
+                const distance = -state.camera3D.position.z / dir.z;
+                const pos = state.camera3D.position.clone().add(dir.multiplyScalar(distance));
+                
+                mesh.position.copy(pos);
+                
+                state.scene3D.add(mesh);
+                state.objects3D.push(mesh);
+                
+                showToast(`3D ${type} added! 🎲`, 'success');
+                console.log('🎲 Added 3D shape:', type);
+            } catch (error) {
+                console.error('❌ Error adding 3D shape:', error);
+                showToast('Error adding 3D shape', 'error');
+            }
+        }
+
+        function saveDrawingState() {
+            const canvas = document.getElementById('drawingCanvas');
+            state.drawingHistory.push(canvas.toDataURL());
+            
+            // Keep only last 20 states
+            if (state.drawingHistory.length > 20) {
+                state.drawingHistory.shift();
+            }
+        }
+
+        // ==================== STORAGE ====================
+        function saveData() {
+            localStorage.setItem('taskflow_tasks', JSON.stringify(state.tasks));
+            localStorage.setItem('taskflow_notes', JSON.stringify(state.notes));
+        }
+
+        function loadData() {
+            const tasks = localStorage.getItem('taskflow_tasks');
+            const notes = localStorage.getItem('taskflow_notes');
+            const theme = localStorage.getItem('theme');
+
+            if (tasks) state.tasks = JSON.parse(tasks);
+            if (notes) state.notes = JSON.parse(notes);
+            if (theme) document.body.dataset.theme = theme;
+        }
+
+        // ==================== TOAST ====================
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} active`;
+            setTimeout(() => toast.classList.remove('active'), 3000);
+        }
+
+        // ==================== UTILITY ====================
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ==================== INITIALIZE ====================
+        init();
+
+        // Auto-save on exit
+        window.addEventListener('beforeunload', saveData);
         
-        // Allow Enter key to send message
-        document.getElementById('chatInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
+        // Handle window resize for drawing board
+        window.addEventListener('resize', () => {
+            if (document.getElementById('drawingBoardContainer').classList.contains('active')) {
+                initDrawingCanvas();
+                
+                if (state.renderer3D && state.camera3D) {
+                    const container = document.getElementById('canvasContainer');
+                    state.camera3D.aspect = container.clientWidth / container.clientHeight;
+                    state.camera3D.updateProjectionMatrix();
+                    state.renderer3D.setSize(container.clientWidth, container.clientHeight);
+                }
             }
         });
     </script>
 </body>
 </html>
-
